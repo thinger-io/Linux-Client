@@ -1,0 +1,29 @@
+#!/bin/bash
+# /etc/init.d/thinger
+
+### BEGIN INIT INFO
+# Provides:          thinger
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Example initscript
+# Description:       Thinger client service
+### END INIT INFO
+
+case "$1" in
+    start)
+        echo "Starting thinger.io client"
+        /usr/local/bin/thinger
+        ;;
+    stop)
+        echo "Stopping thinger.io client"
+        killall thinger
+        ;;
+    *)
+        echo "Usage: /etc/init.d/thinger start|stop"
+        exit 1
+        ;;
+esac
+
+exit 0

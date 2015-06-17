@@ -1,0 +1,12 @@
+[Unit]
+Description=Thinger.io client for the Internet of Things
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/thinger
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
