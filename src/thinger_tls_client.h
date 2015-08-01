@@ -80,12 +80,14 @@ protected:
 	virtual void disconnected(){
 		// release SSL
 		if(ssl!=NULL){
-			SSL_free (ssl);
+			SSL_free(ssl);
+			ssl = NULL;
 		}
 
 		// release SSL context
 		if(sslCtx!=NULL){
-			 SSL_CTX_free (sslCtx);
+			SSL_CTX_free(sslCtx);
+			sslCtx = NULL;
 		}
 
 		// release socket
@@ -93,11 +95,21 @@ protected:
 	}
 
 	virtual bool read(char* buffer, size_t size){
-		return SSL_read(ssl, buffer, size) == size;
+		if(ssl==NULL) return false;
+		int read_size = SSL_read(ssl, buffer, size);
+		if(read_size!=size){
+			disconnected();
+		}
+		return read_size == size;
 	}
 
 	virtual bool write(const char* buffer, size_t size, bool flush=false){
-		return SSL_write(ssl, buffer, size) == size;
+		if(ssl==NULL) return false;
+		int write_size = SSL_write(ssl, buffer, size);
+		if(write_size!=size){
+			disconnected();
+		}
+		return write_size==size;
 	}
 
 private:

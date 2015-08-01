@@ -94,14 +94,23 @@ protected:
 		sockfd = -1;
     }
 
-    virtual bool read(char* buffer, size_t size)
-    {
-    	return ::read(sockfd, buffer, size) == size;
-    }
+	virtual bool read(char* buffer, size_t size){
+		if(sockfd==-1) return false;
+		ssize_t read_size = ::read(sockfd, buffer, size);
+		if(read_size!=size){
+			disconnected();
+		}
+		return read_size == size;
+	}
 
-    virtual bool write(const char* buffer, size_t size, bool flush=false){
-    	return ::write(sockfd, buffer, size) == size;
-    }
+	virtual bool write(const char* buffer, size_t size, bool flush=false){
+		if(sockfd==-1) return false;
+		ssize_t write_size = ::write(sockfd, buffer, size);
+		if(write_size!=size){
+			disconnected();
+		}
+		return write_size == size;
+	}
 
     bool handle_connection()
     {
@@ -219,7 +228,6 @@ public:
     	if(handle_connection()){
         	fd_set rfds;
     		struct timeval tv;
-    		int retval;
 
     		FD_ZERO(&rfds);
     		FD_SET(sockfd, &rfds);
@@ -227,15 +235,13 @@ public:
     		tv.tv_sec = 1;
     		tv.tv_usec = 0;
 
-    		retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
-    		if (retval == -1){
-				#ifdef DEBUG
-        		std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Select error! Resetting Connection!..." << std::endl;
-        		#endif
+    		int retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
+			if (retval == -1){
 				disconnected();
     		}else{
-                thinger::thinger::handle(millis(), retval);
-    		}
+				bool data_available = retval>0 && FD_ISSET(sockfd, &rfds);
+				thinger::thinger::handle(millis(), data_available);
+			}
     	}
     }
 
