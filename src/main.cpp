@@ -23,12 +23,16 @@
 
 #include "thinger.h"
 
+#define USER_ID "user_id"
+#define DEVICE_ID "device_id"
+#define CREDENTIAL_ID "device_credential"
+
 int main(int argc, char *argv[])
 {
     /**
      * If you do not use CMake or want to integrate your dd
      */
-    thinger_device thing("USERNAME", "DEVICE", "CREDENTIAL");
+    thinger_device thing(USER_ID, DEVICE_ID, CREDENTIAL_ID);
 
     // define thing resources here. i.e, this is a sum example
     thing["sum"] = [](pson& in, pson& out){

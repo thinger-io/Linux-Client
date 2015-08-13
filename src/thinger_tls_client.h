@@ -72,7 +72,7 @@ protected:
 	    if (!SSL_set_fd(ssl, sockfd)) return false;
 
 	    // initiate SSL handshake
-		if (SSL_connect (ssl) != 1) return false;
+		if (!SSL_connect (ssl)) return false;
 
 		return true;
 	}
