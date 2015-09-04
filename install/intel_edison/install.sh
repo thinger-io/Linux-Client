@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
-rm -rf build
-mkdir build
+mkdir -p build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DDAEMON=ON -DEDISON=ON ../../../
 systemctl stop thinger.service

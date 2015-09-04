@@ -21,17 +21,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "thinger.h"
+#include "thinger/thinger.h"
 
-#define USER_ID "user_id"
-#define DEVICE_ID "device_id"
-#define CREDENTIAL_ID "device_credential"
+#define USER_ID         "<< YOUR USER ID >>"
+#define DEVICE_ID       "<< YOUR DEVICE ID >>"
+#define CREDENTIAL_ID   "<< YOUR DEVICE CREDENTIAL>>"
 
 int main(int argc, char *argv[])
 {
-    /**
-     * If you do not use CMake or want to integrate your dd
-     */
     thinger_device thing(USER_ID, DEVICE_ID, CREDENTIAL_ID);
 
     // define thing resources here. i.e, this is a sum example
@@ -42,4 +39,3 @@ int main(int argc, char *argv[])
     thing.start();
     return 0;
 }
-

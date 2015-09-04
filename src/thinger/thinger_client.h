@@ -39,7 +39,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include "thinger/thinger.h"
+#include "core/thinger.h"
 
 using namespace protoson;
 
