@@ -46,10 +46,10 @@ if(DAEMON)
 
     if(EDISON)
         install(TARGETS thinger RUNTIME DESTINATION bin)
-        install(FILES "${CMAKE_SOURCE_DIR}/os/intel_edison/thinger.service" DESTINATION /lib/systemd/system)
+        install(FILES "${CMAKE_SOURCE_DIR}/install/intel_edison/thinger.service" DESTINATION /lib/systemd/system)
     elseif(RASPBERRY)
         install(TARGETS thinger RUNTIME DESTINATION bin)
-        install(FILES "${CMAKE_SOURCE_DIR}/os/raspberry/thinger" DESTINATION /etc/init.d)
+        install(FILES "${CMAKE_SOURCE_DIR}/install/raspberry/thinger" DESTINATION /etc/init.d)
     elseif(MAC)
 
     endif()
