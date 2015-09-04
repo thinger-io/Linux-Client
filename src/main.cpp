@@ -23,13 +23,13 @@
 
 #include "thinger/thinger.h"
 
-#define USER_ID         "<< YOUR USER ID >>"
-#define DEVICE_ID       "<< YOUR DEVICE ID >>"
-#define CREDENTIAL_ID   "<< YOUR DEVICE CREDENTIAL>>"
+#define USER_ID             "<< YOUR USER ID >>"
+#define DEVICE_ID           "<< YOUR DEVICE ID >>"
+#define DEVICE_CREDENTIAL   "<< YOUR DEVICE CREDENTIAL>>"
 
 int main(int argc, char *argv[])
 {
-    thinger_device thing(USER_ID, DEVICE_ID, CREDENTIAL_ID);
+    thinger_device thing(USER_ID, DEVICE_ID, DEVICE_CREDENTIAL);
 
     // define thing resources here. i.e, this is a sum example
     thing["sum"] = [](pson& in, pson& out){
