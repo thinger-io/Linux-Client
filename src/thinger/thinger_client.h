@@ -36,6 +36,7 @@
 #include <sys/time.h>
 #include <fcntl.h>
 
+#include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -54,7 +55,8 @@ class thinger_client : public thinger::thinger {
 
 public:
 	thinger_client(const char* user, const char* device, const char* device_credential) :
-    	sockfd(-1), username_(user), device_id_(device), device_password_(device_credential)
+    	sockfd(-1), username_(user), device_id_(device), device_password_(device_credential),
+		out_buffer_(NULL), out_size_(0), buffer_size_(0)
     {
 		#if DAEMON
 			daemonize();
@@ -73,6 +75,7 @@ protected:
     	return THINGER_PORT;
     }
 
+	// TODO change this to a monotonic clock implementation. Using c++11?
     unsigned long millis() {
         struct timeval te;
         gettimeofday(&te, NULL);
@@ -85,7 +88,8 @@ protected:
     }
 
     virtual void disconnected(){
-    	if(sockfd>=0){
+		thinger::disconnected();
+		if(sockfd>=0){
 			#ifdef DEBUG
 			std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Closing socket!" << std::endl;
 			#endif
@@ -104,12 +108,23 @@ protected:
 	}
 
 	virtual bool write(const char* buffer, size_t size, bool flush=false){
-		if(sockfd==-1) return false;
-		ssize_t write_size = ::write(sockfd, buffer, size);
-		if(write_size!=size){
-			disconnected();
+		if(size>0){
+			if(size+out_size_>buffer_size_){
+				buffer_size_ = out_size_ + size;
+				out_buffer_ = (uint8_t*) realloc(out_buffer_, buffer_size_);
+			}
+			memcpy(&out_buffer_[out_size_], buffer, size);
+			out_size_ += size;
 		}
-		return write_size == size;
+		if(flush && out_size_>0){
+			bool success = to_socket(out_buffer_, out_size_);
+			out_size_ = 0;
+			if(!success){
+				disconnected();
+			}
+			return success;
+		}
+		return true;
 	}
 
     bool handle_connection()
@@ -150,6 +165,16 @@ protected:
 
 		// try connecting the socket to the server address
         if (::connect(sockfd,(struct sockaddr *) &serv_addr, sizeof(serv_addr)) == 0 && connected()){
+
+			// set tcp no delay
+			int flag = 1;
+			int result = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+			if (result < 0){
+				#ifdef DEBUG
+				std::cerr << "Cannot set TCP_NODELAY!" << std::endl;
+                #endif
+			}
+
 			#ifdef DEBUG
 			std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Connected!" << std::endl;
 			std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Authenticating..." << std::endl;
@@ -246,10 +271,21 @@ public:
     }
 
 protected:
+
+	virtual bool to_socket(const uint8_t* buffer, size_t size){
+		if(sockfd==-1) return false;
+		ssize_t written = ::write(sockfd, buffer, size);
+		return size == written;
+	}
+
     int sockfd;
     const char* username_;
     const char* device_id_;
     const char* device_password_;
+	uint8_t* out_buffer_;
+	size_t out_size_;
+	size_t buffer_size_;
+
 };
 
 #endif

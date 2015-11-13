@@ -103,13 +103,12 @@ protected:
 		return read_size == size;
 	}
 
-	virtual bool write(const char* buffer, size_t size, bool flush=false){
+protected:
+
+	virtual bool to_socket(const uint8_t* buffer, size_t size){
 		if(ssl==NULL) return false;
 		int write_size = SSL_write(ssl, buffer, size);
-		if(write_size!=size){
-			disconnected();
-		}
-		return write_size==size;
+		return write_size == size;
 	}
 
 private:
