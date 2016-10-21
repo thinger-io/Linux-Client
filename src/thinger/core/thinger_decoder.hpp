@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015 THINGER LTD
+// Copyright (c) 2016 THINK BIG LABS SL
 // Author: alvarolb@gmail.com (Alvaro Luis Bustamante)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,7 +25,6 @@
 #define THINGER_DECODER_HPP
 
 #include "pson.h"
-#include "thinger_io.hpp"
 #include "thinger_message.hpp"
 
 namespace thinger{
@@ -60,10 +59,13 @@ namespace thinger{
                     }
                     case protoson::pson_type:
                         switch(field_number){
+                            case thinger_message::IDENTIFIER:
+                                protoson::pson_decoder::decode(message.get_identifier());
+                                break;
                             case thinger_message::RESOURCE:
                                 protoson::pson_decoder::decode(message.get_resources());
                                 break;
-                            case thinger_message::PSON_PAYLOAD:
+                            case thinger_message::PAYLOAD:
                                 protoson::pson_decoder::decode(((protoson::pson&) message));
                                 break;
                             default:

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(thinger)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
+
 # check c++11 support
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -15,7 +17,7 @@ endif()
 
 OPTION(ENABLE_OPENSSL "Enable use of OpenSSL" ON)
 OPTION(DAEMON "Build thinger client as daemon" OFF)
-OPTION(EDISON "Enable build and isntall for Intel Edison" OFF)
+OPTION(EDISON "Enable build and install for Intel Edison" OFF)
 OPTION(RASPBERRY "Enable build and isntall for Raspberry Pi" OFF)
 
 # Find OpenSSL
@@ -37,6 +39,15 @@ set(SOURCE_FILES src/main.cpp)
 
 # set OpenSSL if available
 add_definitions( -DOPEN_SSL=${OPEN_SSL} )
+
+# Support for WiringPi on Raspberry
+if(RASPBERRY)
+    find_package(WiringPi)
+    if(WiringPi_FOUND)
+        include_directories(${WiringPi_INCLUDE_DIR})
+        list(APPEND ADDITIONAL_LIBS ${WiringPi_LIBRARIES})
+    endif()
+endif()
 
 if(DAEMON)
     # daemon service that can be installed as a linux service

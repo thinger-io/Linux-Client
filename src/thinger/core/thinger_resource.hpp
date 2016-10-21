@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015 THINGER LTD
+// Copyright (c) 2016 THINK BIG LABS SL
 // Author: alvarolb@gmail.com (Alvaro Luis Bustamante)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -167,6 +167,12 @@ public:
             callback_.pson_out(content["out"]);
         }else if(io_type_ == pson_in_pson_out){
             callback_.pson_in_pson_out(content["in"], content["out"]);
+        }
+    }
+
+    void fill_output(protoson::pson& content){
+        if(io_type_ == pson_out){
+            callback_.pson_out(content);
         }
     }
 
