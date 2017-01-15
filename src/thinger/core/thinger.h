@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016 THINK BIG LABS SL
+// Copyright (c) 2017 THINK BIG LABS SL
 // Author: alvarolb@gmail.com (Alvaro Luis Bustamante)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -154,6 +154,10 @@ namespace thinger{
             return send_message(message);
         }
 
+        bool call_endpoint(const char* endpoint_name, const char* resource_name){
+            return call_endpoint(endpoint_name, resources_[resource_name]);
+        }
+
         /**
          * Stream the given resource. This resource should be previously requested by an external process.
          * Otherwise, the resource will not be streamed as nothing will be listening for it.
@@ -213,30 +217,30 @@ namespace thinger{
         }
 
         bool read_message(thinger_message& message){
-            uint8_t type = decoder.pb_decode_varint32();
-            switch (type){
-                case MESSAGE: {
-                    size_t size = decoder.pb_decode_varint32();
-                    decoder.decode(message, size);
+            uint32_t type = 0;
+            if(decoder.pb_decode_varint32(type)){
+                switch (type){
+                    case MESSAGE: {
+                        uint32_t size = 0;
+                        return decoder.pb_decode_varint32(size) &&
+                               decoder.decode(message, size);
+                    }
+                    case KEEP_ALIVE: {
+                        keep_alive_response = true;
+                        decoder.pb_skip_varint();
+                    }
                 }
-                    break;
-                case KEEP_ALIVE: {
-                    size_t size = decoder.pb_decode_varint32();
-                    keep_alive_response = true;
-                }
-                    return false;
-                default:
-                    return false;
             }
-            return true;
+            return false;
         }
 
         bool handle_input(){
             thinger_message message;
             if(read_message(message)){
                 handle_request_received(message);
+                return true;
             }
-            return true;
+            return false;
         }
 
     private:

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016 THINK BIG LABS SL
+// Copyright (c) 2017 THINK BIG LABS S.L.
 // Author: alvarolb@gmail.com (Alvaro Luis Bustamante)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,8 +32,8 @@ namespace thinger{
     class thinger_encoder : public protoson::pson_encoder{
 
     protected:
-        virtual void write(const void *buffer, size_t size){
-            protoson::pson_encoder::write(buffer, size);
+        virtual bool write(const void *buffer, size_t size){
+            return protoson::pson_encoder::write(buffer, size);
         }
 
     public:
@@ -65,9 +65,8 @@ namespace thinger{
         {}
 
     protected:
-        virtual void write(const void *buffer, size_t size){
-            io_.write((const char*)buffer, size);
-            protoson::pson_encoder::write(buffer, size);
+        virtual bool write(const void *buffer, size_t size){
+            return io_.write((const char*)buffer, size) && protoson::pson_encoder::write(buffer, size);
         }
 
     private:
@@ -75,13 +74,17 @@ namespace thinger{
     };
 
     class thinger_memory_encoder : public thinger_encoder{
+
     public:
         thinger_memory_encoder(uint8_t* buffer, size_t size) : buffer_(buffer), size_(size){}
 
     protected:
-        virtual void write(const void *buffer, size_t size){
-            memcpy(buffer_ + written_, buffer, size);
-            protoson::pson_encoder::write(buffer, size);
+        virtual bool write(const void *buffer, size_t size){
+            if(written_+size < size_){
+                memcpy(buffer_ + written_, buffer, size);
+                return protoson::pson_encoder::write(buffer, size);
+            }
+            return false;
         }
 
     private:
