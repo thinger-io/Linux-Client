@@ -29,6 +29,7 @@
 namespace thinger{
 
     enum message_type{
+        NONE                = 0,
         MESSAGE             = 1,
         KEEP_ALIVE          = 2
     };
@@ -64,7 +65,9 @@ namespace thinger{
             STREAM_SAMPLE       = 7,    // means that the message is related to a periodical streaming sample
             CALL_ENDPOINT       = 8,    // call the endpoint with the provided name (endpoint_id in identifier, value passed in payload)
             CALL_DEVICE         = 9,    // call a given device (device_id in identifier, resource in resource, and value, passed in payload)
-            BUCKET_DATA         = 10    // call the bucket with the provided name (bucket_id in identifier, value passed in payload)
+            BUCKET_DATA         = 10,    // call the bucket with the provided name (bucket_id in identifier, value passed in payload)
+            GET_PROPERTY        = 11,    // call the bucket with the provided name (bucket_id in identifier, value passed in payload)
+            SET_PROPERTY        = 12    // call the bucket with the provided name (bucket_id in identifier, value passed in payload)
         };
 
     public:
@@ -74,34 +77,34 @@ namespace thinger{
          * and initializing the signal flag to ok. All remaining data or fields are empty
          */
         thinger_message(thinger_message& other) :
-                stream_id(other.stream_id),
-                flag(REQUEST_OK),
-                identifier(NULL),
-                resource(NULL),
-                data(NULL),
-                data_allocated(false)
+            stream_id(other.stream_id),
+            flag(REQUEST_OK),
+            identifier(NULL),
+            resource(NULL),
+            data(NULL),
+            data_allocated(false)
         {}
 
         /**
          * Initialize a default empty message
          */
         thinger_message() :
-                stream_id(0),
-                flag(NONE),
-                identifier(NULL),
-                resource(NULL),
-                data(NULL),
-                data_allocated(false)
+            stream_id(0),
+            flag(NONE),
+            identifier(NULL),
+            resource(NULL),
+            data(NULL),
+            data_allocated(false)
         {}
 
         ~thinger_message(){
             // deallocate identifier
-            destroy(identifier, protoson::pool);
+            protoson::pool.destroy(identifier);
             // deallocate resource
-            destroy(resource, protoson::pool);
+            protoson::pool.destroy(resource);
             // deallocate paylaod if was allocated here
             if(data_allocated){
-                destroy(data, protoson::pool);
+                protoson::pool.destroy(data);
             }
         }
 
@@ -146,30 +149,35 @@ namespace thinger{
             thinger_message::stream_id = stream_id;
         }
 
+        void set_random_stream_id(){
+            // TODO, random seed
+            thinger_message::stream_id = rand();
+        }
+
         void set_signal_flag(signal_flag const &flag) {
             thinger_message::flag = flag;
         }
 
         void set_identifier(const char* id){
             if(identifier==NULL){
-                identifier = new (protoson::pool) protoson::pson;
+                identifier = protoson::pool.allocate<protoson::pson>();
             }
             (*identifier) = id;
         }
 
         void clean_identifier(){
-            destroy(identifier, protoson::pool);
+            protoson::pool.destroy(identifier);
             identifier = NULL;
         }
 
         void clean_resource(){
-            destroy(resource, protoson::pool);
+            protoson::pool.destroy(resource);
             resource = NULL;
         }
 
         void clean_data(){
             if(data_allocated){
-                destroy(data, protoson::pool);
+                protoson::pool.destroy(data);
             }
             data = NULL;
         }
@@ -182,7 +190,7 @@ namespace thinger{
 
         operator protoson::pson&(){
             if(data==NULL){
-                data = new (protoson::pool) protoson::pson;
+                data = protoson::pool.allocate<protoson::pson>();
                 data_allocated = true;
             }
             return *data;
@@ -194,14 +202,14 @@ namespace thinger{
 
         protoson::pson& get_resources(){
             if(resource==NULL){
-                resource = new (protoson::pool) protoson::pson;
+                resource = protoson::pool.allocate<protoson::pson>();
             }
             return *resource;
         }
 
         protoson::pson& get_identifier(){
             if(identifier==NULL){
-                identifier = new (protoson::pool) protoson::pson;
+                identifier = protoson::pool.allocate<protoson::pson>();
             }
             return *identifier;
         }

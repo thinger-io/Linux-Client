@@ -35,13 +35,12 @@ namespace thinger{
             size_t start_read = bytes_read();
             while(size-(bytes_read()-start_read)>0) {
                 protoson::pb_wire_type wire_type;
-                uint32_t field_number;
+                uint32_t field_number=0;
                 if(!pb_decode_tag(wire_type, field_number)) return false;
                 switch (wire_type) {
                     case protoson::length_delimited:{
                         uint32_t size = 0;
-                        if(!pb_decode_varint32(size)) return false;
-                        pb_skip(size);
+                        if(!pb_decode_varint32(size) || !pb_skip(size)) return false;
                     }
                         break;
                     case protoson::varint: {
