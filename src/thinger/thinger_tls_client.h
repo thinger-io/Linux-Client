@@ -32,8 +32,8 @@
 class thinger_tls_client : public thinger_client {
 
 public:
-	thinger_tls_client(const char* user, const char* device, const char* device_credential) :
-    	thinger_client(user, device, device_credential), sslCtx(NULL), ssl(NULL)
+	thinger_tls_client(const char* user, const char* device, const char* device_credential, const char* thinger_server = THINGER_SERVER) :
+    	thinger_client(user, device, device_credential, thinger_server), sslCtx(NULL), ssl(NULL)
     {
 		SSL_library_init();
     }

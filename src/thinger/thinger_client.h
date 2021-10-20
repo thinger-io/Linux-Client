@@ -63,8 +63,8 @@ memory_allocator& protoson::pool = alloc;
 class thinger_client : public thinger::thinger {
 
 public:
-	thinger_client(const char* user, const char* device, const char* device_credential) :
-    	sockfd(-1), username_(user), device_id_(device), device_password_(device_credential),
+	thinger_client(const char* user, const char* device, const char* device_credential, const char* thinger_server = THINGER_SERVER) :
+    	sockfd(-1), username_(user), device_id_(device), device_password_(device_credential), thinger_server_(thinger_server),
 		out_buffer_(NULL), out_size_(0), buffer_size_(0)
     {
 		#if DAEMON
@@ -72,12 +72,21 @@ public:
 		#endif
 	}
 
+    /*thinger_client(const char* thinger_host, const char* user, const char* device, const char* device_credential) :
+      sockfd(-1), thinger_host_(thinger_host), username_(user), device_id_(device), device_password_(device_credential),
+      out_buffer_(NULL), out_size_(0), buffer_size_(0)
+    {
+          #if DAEMON
+              daemonize();
+          #endif
+    }*/
+
     virtual ~thinger_client()
     {}
 
 protected:
     virtual const char* get_server(){
-    	return THINGER_SERVER;
+    	return thinger_server_;
     }
 
     virtual unsigned short get_server_port(){
@@ -288,6 +297,7 @@ protected:
 	}
 
     int sockfd;
+    const char* thinger_server_;
     const char* username_;
     const char* device_id_;
     const char* device_password_;
