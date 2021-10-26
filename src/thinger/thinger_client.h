@@ -63,37 +63,28 @@ memory_allocator& protoson::pool = alloc;
 class thinger_client : public thinger::thinger {
 
 public:
-	thinger_client(const char* user, const char* device, const char* device_credential, const char* thinger_server = THINGER_SERVER) :
-    	sockfd(-1), username_(user), device_id_(device), device_password_(device_credential), thinger_server_(thinger_server),
-		out_buffer_(NULL), out_size_(0), buffer_size_(0)
-    {
-		#if DAEMON
-			daemonize();
-		#endif
-	}
-
-    /*thinger_client(const char* thinger_host, const char* user, const char* device, const char* device_credential) :
-      sockfd(-1), thinger_host_(thinger_host), username_(user), device_id_(device), device_password_(device_credential),
+    thinger_client(const char* user, const char* device, const char* device_credential, const char* thinger_server = THINGER_SERVER) :
+      sockfd(-1), username_(user), device_id_(device), device_password_(device_credential), thinger_server_(thinger_server),
       out_buffer_(NULL), out_size_(0), buffer_size_(0)
     {
-          #if DAEMON
-              daemonize();
-          #endif
-    }*/
+        #if DAEMON
+          daemonize();
+        #endif
+    }
 
     virtual ~thinger_client()
     {}
 
 protected:
     virtual const char* get_server(){
-    	return thinger_server_;
+      return thinger_server_;
     }
 
     virtual unsigned short get_server_port(){
-    	return THINGER_PORT;
+      return THINGER_PORT;
     }
 
-	// TODO change this to a monotonic clock implementation. Using c++11?
+    // TODO change this to a monotonic clock implementation. Using c++11?
     unsigned long millis() {
         struct timeval te;
         gettimeofday(&te, NULL);
@@ -102,67 +93,66 @@ protected:
     }
 
     virtual bool connected(){
-    	return true;
+        return true;
     }
 
     virtual void disconnected(){
-		thinger::disconnected();
-		if(sockfd>=0){
-			#ifdef DEBUG
-			std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Closing socket!" << std::endl;
-			#endif
-			close(sockfd);
-		}
-		sockfd = -1;
+        thinger::disconnected();
+        if(sockfd>=0){
+            #ifdef DEBUG
+              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Closing socket!" << std::endl;
+            #endif
+            close(sockfd);
+        }
+        sockfd = -1;
     }
 
-	virtual bool read(char* buffer, size_t size){
-		if(sockfd==-1) return false;
-		ssize_t read_size = ::read(sockfd, buffer, size);
-		if(read_size!=size){
-			disconnected();
-		}
-		return read_size == size;
-	}
+    virtual bool read(char* buffer, size_t size){
+        if(sockfd==-1) return false;
+        ssize_t read_size = ::read(sockfd, buffer, size);
+        if(read_size!=size){
+            disconnected();
+        }
+        return read_size == size;
+    }
 
-	virtual bool write(const char* buffer, size_t size, bool flush=false){
-		if(size>0){
-			if(size+out_size_>buffer_size_){
-				buffer_size_ = out_size_ + size;
-				out_buffer_ = (uint8_t*) realloc(out_buffer_, buffer_size_);
-			}
-			memcpy(&out_buffer_[out_size_], buffer, size);
-			out_size_ += size;
-		}
-		if(flush && out_size_>0){
-			bool success = to_socket(out_buffer_, out_size_);
-			out_size_ = 0;
-			if(!success){
-				disconnected();
-			}
-			return success;
-		}
-		return true;
-	}
+    virtual bool write(const char* buffer, size_t size, bool flush=false){
+        if(size>0){
+            if(size+out_size_>buffer_size_){
+                buffer_size_ = out_size_ + size;
+                out_buffer_ = (uint8_t*) realloc(out_buffer_, buffer_size_);
+            }
+            memcpy(&out_buffer_[out_size_], buffer, size);
+            out_size_ += size;
+        }
+        if(flush && out_size_>0){
+            bool success = to_socket(out_buffer_, out_size_);
+            out_size_ = 0;
+            if(!success){
+                disconnected();
+            }
+            return success;
+        }
+        return true;
+    }
 
-    bool handle_connection()
-    {
-    	while(sockfd<0){
-			#ifdef DEBUG
-			std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Not connected!" << std::endl;
-			#endif
-    		if(!connect_client()){
-				#ifdef DEBUG
-				std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Cannot Connect! Trying again in a few seconds..." << std::endl;
-        		#endif
-				sleep(RECONNECTION_TIMEOUT_SECONDS);
-    		}
-    	}
-    	return true;
+    bool handle_connection() {
+        while(sockfd<0){
+            #ifdef DEBUG
+              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Not connected!" << std::endl;
+            #endif
+            if(!connect_client()){
+                #ifdef DEBUG
+                  std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Cannot Connect! Trying again in a few seconds..." << std::endl;
+                #endif
+                sleep(RECONNECTION_TIMEOUT_SECONDS);
+            }
+        }
+        return true;
     }
 
     bool connect_client(){
-    	// resolve server name
+        // resolve server name
         struct hostent* server = gethostbyname(get_server());
         if (server == NULL) return false;
 
@@ -174,41 +164,41 @@ protected:
         serv_addr.sin_port = htons(get_server_port());
 
         // create a new socket
-		sockfd = socket(AF_INET, SOCK_STREAM, 0);
-		if (sockfd < 0) return false;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0) return false;
 
-		#ifdef DEBUG
-		std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Connecting to " << get_server() << ":" << get_server_port() << " ..." << std::endl;
-		#endif
+        #ifdef DEBUG
+        std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Connecting to " << get_server() << ":" << get_server_port() << " ..." << std::endl;
+        #endif
 
-		// try connecting the socket to the server address
+        // try connecting the socket to the server address
         if (::connect(sockfd,(struct sockaddr *) &serv_addr, sizeof(serv_addr)) == 0 && connected()){
 
-			// set tcp no delay
-			int flag = 1;
-			int result = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
-			if (result < 0){
-				#ifdef DEBUG
-				std::cerr << "Cannot set TCP_NODELAY!" << std::endl;
+            // set tcp no delay
+            int flag = 1;
+            int result = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+            if (result < 0){
+                #ifdef DEBUG
+                  std::cerr << "Cannot set TCP_NODELAY!" << std::endl;
                 #endif
-			}
+            }
 
-			#ifdef DEBUG
-			std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Connected!" << std::endl;
-			std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Authenticating..." << std::endl;
-			#endif
+            #ifdef DEBUG
+              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Connected!" << std::endl;
+              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Authenticating..." << std::endl;
+            #endif
             bool auth = thinger::thinger::connect(username_, device_id_, device_password_);
             if(!auth){
-				#ifdef DEBUG
-				std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Cannot authenticate!" << std::endl;
-				#endif
-        		disconnected();
+                #ifdef DEBUG
+                  std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Cannot authenticate!" << std::endl;
+                #endif
+                disconnected();
             }
-			#ifdef DEBUG
-			else{
-        		std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Authenticated!" << std::endl;
-            }
-			#endif
+            #ifdef DEBUG
+              else{
+                  std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Authenticated!" << std::endl;
+              }
+            #endif
             return auth;
         }
 
@@ -223,87 +213,87 @@ public:
      * Static method for allowing run the program as a daemon. Must be called in the main.
      */
     static void daemonize(){
-		/* Our process ID and Session ID */
-		pid_t pid, sid;
+        /* Our process ID and Session ID */
+        pid_t pid, sid;
 
-		/* Fork off the parent process */
-		pid = fork();
-		if (pid < 0) {
-			exit(EXIT_FAILURE);
-		}
-		/* If we got a good PID, then
-		   we can exit the parent process. */
-		if (pid > 0) {
-			exit(EXIT_SUCCESS);
-		}
+        /* Fork off the parent process */
+        pid = fork();
+        if (pid < 0) {
+            exit(EXIT_FAILURE);
+        }
+        /* If we got a good PID, then
+           we can exit the parent process. */
+        if (pid > 0) {
+           exit(EXIT_SUCCESS);
+        }
 
-		/* Change the file mode mask */
-		umask(0);
+        /* Change the file mode mask */
+        umask(0);
 
-		/* Open any logs here */
+        /* Open any logs here */
 
-		/* Create a new SID for the child process */
-		sid = setsid();
-		if (sid < 0) {
-			/* Log the failure */
-			exit(EXIT_FAILURE);
-		}
+        /* Create a new SID for the child process */
+        sid = setsid();
+        if (sid < 0) {
+            /* Log the failure */
+            exit(EXIT_FAILURE);
+        }
 
-		/* Change the current working directory */
-		if ((chdir("/")) < 0) {
-			/* Log the failure */
-			exit(EXIT_FAILURE);
-		}
+        /* Change the current working directory */
+        if ((chdir("/")) < 0) {
+            /* Log the failure */
+            exit(EXIT_FAILURE);
+        }
 
-		/* Close out the standard file descriptors */
-		close(STDIN_FILENO);
-		close(STDOUT_FILENO);
-		close(STDERR_FILENO);
+        /* Close out the standard file descriptors */
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
     }
 
     void start(){
-		while(true){
-			handle();
-		}
+        while(true){
+            handle();
+        }
     }
 
     void handle(){
-    	if(handle_connection()){
-        	fd_set rfds;
-    		struct timeval tv;
+        if(handle_connection()){
+            fd_set rfds;
+            struct timeval tv;
 
-    		FD_ZERO(&rfds);
-    		FD_SET(sockfd, &rfds);
+            FD_ZERO(&rfds);
+            FD_SET(sockfd, &rfds);
 
-    		tv.tv_sec = 1;
-    		tv.tv_usec = 0;
+            tv.tv_sec = 1;
+            tv.tv_usec = 0;
 
-    		int retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
-			if (retval == -1){
-				disconnected();
-    		}else{
-				bool data_available = retval>0 && FD_ISSET(sockfd, &rfds);
-				thinger::thinger::handle(millis(), data_available);
-			}
-    	}
+            int retval = select(sockfd+1, &rfds, NULL, NULL, &tv);
+            if (retval == -1){
+                disconnected();
+            } else {
+                bool data_available = retval>0 && FD_ISSET(sockfd, &rfds);
+                thinger::thinger::handle(millis(), data_available);
+            }
+        }
     }
 
 protected:
 
-	virtual bool to_socket(const uint8_t* buffer, size_t size){
-		if(sockfd==-1) return false;
-		ssize_t written = ::write(sockfd, buffer, size);
-		return size == written;
-	}
+    virtual bool to_socket(const uint8_t* buffer, size_t size){
+        if(sockfd==-1) return false;
+        ssize_t written = ::write(sockfd, buffer, size);
+        return size == written;
+    }
 
     int sockfd;
     const char* thinger_server_;
     const char* username_;
     const char* device_id_;
     const char* device_password_;
-	uint8_t* out_buffer_;
-	size_t out_size_;
-	size_t buffer_size_;
+    uint8_t* out_buffer_;
+    size_t out_size_;
+    size_t buffer_size_;
 
 };
 
