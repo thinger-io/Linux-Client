@@ -63,6 +63,23 @@ memory_allocator& protoson::pool = alloc;
 class thinger_client : public thinger::thinger {
 
 public:
+
+    enum THINGER_STATE{
+        NETWORK_CONNECTING,
+        NETWORK_CONNECTED,
+        NETWORK_CONNECT_ERROR,
+        SOCKET_CONNECTING,
+        SOCKET_CONNECTED,
+        SOCKET_CONNECTION_ERROR,
+        SOCKET_DISCONNECTED,
+        SOCKET_TIMEOUT,
+        SOCKET_ERROR,
+        THINGER_AUTHENTICATING,
+        THINGER_AUTHENTICATED,
+        THINGER_AUTH_FAILED,
+        THINGER_STOP_REQUEST
+    };
+
     thinger_client(const char* user, const char* device, const char* device_credential, const char* thinger_server = THINGER_SERVER) :
       sockfd(-1), username_(user), device_id_(device), device_password_(device_credential), thinger_server_(thinger_server),
       out_buffer_(NULL), out_size_(0), buffer_size_(0)
@@ -97,12 +114,11 @@ protected:
     }
 
     virtual void disconnected(){
+        thinger_state_listener(SOCKET_TIMEOUT);
         thinger::disconnected();
         if(sockfd>=0){
-            #ifdef DEBUG
-              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Closing socket!" << std::endl;
-            #endif
             close(sockfd);
+            thinger_state_listener(SOCKET_DISCONNECTED);
         }
         sockfd = -1;
     }
@@ -136,16 +152,77 @@ protected:
         return true;
     }
 
+    virtual void thinger_state_listener(THINGER_STATE state){
+        #ifdef DEBUG
+        switch(state){
+            case NETWORK_CONNECTING:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[NETWORK] Starting connection..." << std::endl;
+                break;
+            case NETWORK_CONNECTED:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[NETWORK] Connected!" << std::endl;
+                break;
+            case NETWORK_CONNECT_ERROR:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[NETWORK] Cannot connect!" << std::endl;
+                break;
+            case SOCKET_CONNECTING:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[_SOCKET] Connecting to " << thinger_server_ << ":" << get_server_port() << "..." << std::endl;
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[_SOCKET] Using secure TLS/SSL connection: ";
+                std::cout << (get_server_port() == 25200 ? "no" : "yes") << std::endl;
+                break;
+            case SOCKET_CONNECTED:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[_SOCKET] Connected!" << std::endl;
+                break;
+            case SOCKET_CONNECTION_ERROR:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[_SOCKET] Error while connecting!" << std::endl;
+                break;
+            case SOCKET_DISCONNECTED:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[_SOCKET] Is now closed!" << std::endl;
+                break;
+            case SOCKET_ERROR:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[_SOCKET] Socket Error!" << std::endl;
+                break;
+            case SOCKET_TIMEOUT:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[_SOCKET] Timeout!" << std::endl;
+                break;
+            case THINGER_AUTHENTICATING:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[THINGER] Authenticating. User: " << username_ << " Device: " << device_id_ << std::endl;
+                break;
+            case THINGER_AUTHENTICATED:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[THINGER] Authenticated" << std::endl;
+                break;
+            case THINGER_AUTH_FAILED:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[THINGER] Auth Failed! Check username, device id, or device credentials." << std::endl;
+                break;
+            case THINGER_STOP_REQUEST:
+                std::cout << std::fixed << millis()/1000.0 << " ";
+                std::cout << "[THINGER] Client was requested to stop." << std::endl;
+                break;
+        }
+        #endif
+        if(state_listener_) state_listener_(state);
+    }
+
     bool handle_connection() {
         while(sockfd<0){
-            #ifdef DEBUG
-              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Not connected!" << std::endl;
-            #endif
+            thinger_state_listener(NETWORK_CONNECTING);
             if(!connect_client()){
-                #ifdef DEBUG
-                  std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Cannot Connect! Trying again in a few seconds..." << std::endl;
-                #endif
+                thinger_state_listener(NETWORK_CONNECT_ERROR);
                 sleep(RECONNECTION_TIMEOUT_SECONDS);
+            } else {
+                thinger_state_listener(NETWORK_CONNECTED);
             }
         }
         return true;
@@ -167,9 +244,7 @@ protected:
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) return false;
 
-        #ifdef DEBUG
-        std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Connecting to " << get_server() << ":" << get_server_port() << " ..." << std::endl;
-        #endif
+        thinger_state_listener(SOCKET_CONNECTING);
 
         // try connecting the socket to the server address
         if (::connect(sockfd,(struct sockaddr *) &serv_addr, sizeof(serv_addr)) == 0 && connected()){
@@ -178,27 +253,18 @@ protected:
             int flag = 1;
             int result = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
             if (result < 0){
-                #ifdef DEBUG
-                  std::cerr << "Cannot set TCP_NODELAY!" << std::endl;
-                #endif
+                thinger_state_listener(SOCKET_CONNECTION_ERROR);
             }
 
-            #ifdef DEBUG
-              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Connected!" << std::endl;
-              std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Authenticating..." << std::endl;
-            #endif
+            thinger_state_listener(SOCKET_CONNECTED);
+            thinger_state_listener(THINGER_AUTHENTICATING);
             bool auth = thinger::thinger::connect(username_, device_id_, device_password_);
             if(!auth){
-                #ifdef DEBUG
-                  std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Cannot authenticate!" << std::endl;
-                #endif
+                thinger_state_listener(THINGER_AUTH_FAILED);
                 disconnected();
+            } else {
+                thinger_state_listener(THINGER_AUTHENTICATED);
             }
-            #ifdef DEBUG
-              else{
-                  std::cout << "[" <<  std::fixed << millis()/1000.0 << "]: " << "Authenticated!" << std::endl;
-              }
-            #endif
             return auth;
         }
 
@@ -278,6 +344,10 @@ public:
         }
     }
 
+    void set_state_listener(std::function<void(THINGER_STATE)> state_listener){
+        state_listener_ = state_listener;
+    }
+
 protected:
 
     virtual bool to_socket(const uint8_t* buffer, size_t size){
@@ -291,6 +361,7 @@ protected:
     const char* username_;
     const char* device_id_;
     const char* device_password_;
+    std::function<void(THINGER_STATE)> state_listener_;
     uint8_t* out_buffer_;
     size_t out_size_;
     size_t buffer_size_;
