@@ -172,7 +172,11 @@ protected:
                 std::cout << "[_SOCKET] Connecting to " << thinger_server_ << ":" << get_server_port() << "..." << std::endl;
                 std::cout << std::fixed << millis()/1000.0 << " ";
                 std::cout << "[_SOCKET] Using secure TLS/SSL connection: ";
-                std::cout << (get_server_port() == 25200 ? "no" : "yes") << std::endl;
+                #if OPEN_SSL
+                    std::cout << "yes" << std::endl;
+                #else
+                    std::cout << "no" << std::endl;
+                #endif
                 break;
             case SOCKET_CONNECTED:
                 std::cout << std::fixed << millis()/1000.0 << " ";
