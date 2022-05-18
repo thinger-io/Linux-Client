@@ -33,7 +33,7 @@ class thinger_tls_client : public thinger_client {
 
 public:
 	thinger_tls_client(const char* user, const char* device, const char* device_credential, const char* thinger_server = THINGER_SERVER) :
-    	thinger_client(user, device, device_credential, thinger_server), sslCtx(NULL), ssl(NULL)
+		thinger_client(user, device, device_credential, thinger_server), sslCtx(NULL), ssl(NULL), thinger_server(thinger_server)
     {
 		SSL_library_init();
     }
@@ -68,10 +68,13 @@ protected:
 		const char* const PREFERRED_CIPHERS = "HIGH:!aNULL:!kRSA:!PSK:!SRP!MD5:!RC4";
 		SSL_set_cipher_list(ssl, PREFERRED_CIPHERS);
 
-		// set socket file descriptor
-	    if (!SSL_set_fd(ssl, sockfd)) return false;
+		// required for SNI resolving
+		if (!SSL_set_tlsext_host_name(ssl, thinger_server)) return false;
 
-	    // initiate SSL handshake
+		// set socket file descriptor
+		if (!SSL_set_fd(ssl, sockfd)) return false;
+
+		// initiate SSL handshake
 		if (!SSL_connect (ssl)) return false;
 
 		return true;
@@ -114,6 +117,7 @@ protected:
 private:
 	SSL_CTX *sslCtx;
 	SSL *ssl;
+	const char* thinger_server;
 };
 
 #endif
